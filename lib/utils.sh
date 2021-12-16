@@ -223,44 +223,6 @@ function lookupConfigFile {
 }
 
 #
-# Install a container registry credential.
-# @param secretName Name of the generate pull secret in Kubernetes.
-# @param secretNamespace OPTIONAL: the namespace in which the secet should be deployed (default is 'default').
-#
-function deployK8sGcrCredentials {
-  local secretName=$1
-  local secretNamespace=$2
-  local registryServer='eu.gcr.io'
-  local registryUsername='_json_key'
-  local registrySaFile=$(lookupConfigFile 'ccv2-devops-gcr.json')
-
-  # Sanity checks
-  if [ -z "$secretNamespace" ]; then
-    secretNamespace='default'
-  fi
-  fileExists "$registrySaFile" true
-
-  # Deploy the secret (if it doesn't exist already)
-  kubectl -n $secretNamespace get secret $secretName > /dev/null
-  if [ $? -eq 0 ]; then
-    debug "Container registry secret '${secretNamespace}/${secretName}' already exists"
-    return 0
-  fi
-
-  debug "Deploy new container registry credential '${secretName}'"
-  kubectl -n $secretNamespace create secret docker-registry $secretName \
-    --namespace="${secretNamespace}" \
-    --docker-server="${registryServer}" \
-    --docker-username="${registryUsername}" \
-    --docker-password="$(cat ${registrySaFile})" \
-    --docker-email=DL_5DA8771955A2D7205C1EE7CA@global.corp.sap
-
-  if [ $? -ne 0 ]; then
-    fail "Could not create container registry secret '${secretName}'" true
-  fi
-}
-
-#
 # Encrypt a file and lock it with a password (encrypted file will be stored with .enc extension).
 # @param inputFile The file to encrypt.
 # @paran password The password used to protect the file.

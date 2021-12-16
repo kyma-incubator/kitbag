@@ -9,17 +9,9 @@ K3S_OPTIONS="
 # Hook executed when the PLUGIN was loaded.
 #
 function _k3s_main {
-  cmdExists docker false "'docker' not found in path.
-Please install Docker and re-run this script
-(see https://docs.docker.com/get-docker/)"
-
-  cmdExists kubectl false "'kubectl' not found in path.
-Please install Kubectl and re-run this script
-(see https://kubernetes.io/docs/tasks/tools/install-kubectl/)"
-
-  cmdExists k3d false "'k3d' not found in path.
-Please install K3D and re-run this script
-(see https://github.com/rancher/k3d#get)"
+  cmdExists docker
+  cmdExists kubectl
+  cmdExists k3d
 }
 
 #

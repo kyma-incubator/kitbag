@@ -6,6 +6,8 @@ SELF_PLUGIN_OPTIONS="
 -SELF_PLUGIN_CMD|-gcn|firstcmd|Name of the command
 "
 
+self_plugin_tpl=""
+
 #
 # Hook executed when the plugin was loaded.
 #
@@ -41,7 +43,7 @@ function self_plugin_create { # Create a new plugin
 # Load template to variable
 
 function _self_plugin_loadtpl {
-  read -rd '' SELF_PLUGIN_TPL << "EOF"
+  read -rd '' self_plugin_tpl << "EOF"
 #!/bin/bash
 
 # Public configuration (adjustable over CLI)
@@ -76,19 +78,19 @@ EOF
 
 function _self_plugin_customizeTemplate {
   # Inject PLUGIN name
-  SELF_PLUGIN_TPL=$(sed "s/<plugin>/${SELF_PLUGIN_NAME}/g" <(echo "${SELF_PLUGIN_TPL}"))
+  self_plugin_tpl=$(sed "s/<plugin>/${SELF_PLUGIN_NAME}/g" <(echo "${self_plugin_tpl}"))
   # Inject first command name
-  SELF_PLUGIN_TPL=$(sed "s/<command>/${SELF_PLUGIN_CMD}/g" <(echo "${SELF_PLUGIN_TPL}"))
+  self_plugin_tpl=$(sed "s/<command>/${SELF_PLUGIN_CMD}/g" <(echo "${self_plugin_tpl}"))
   # Inject upper case PLUGIN namve for PLUGIN_OPTIONS 
-  SELF_PLUGIN_NAME_UPPER="$(echo ${SELF_PLUGIN_NAME} | tr 'a-z' 'A-Z')"
-  SELF_PLUGIN_TPL=$(sed "s/<PLUGIN>/${SELF_PLUGIN_NAME_UPPER}/g" <(echo "${SELF_PLUGIN_TPL}"))
+  local self_plugin_nameUpper="$(echo ${SELF_PLUGIN_NAME} | tr 'a-z' 'A-Z')"
+  self_plugin_tpl=$(sed "s/<PLUGIN>/${self_plugin_nameUpper}/g" <(echo "${self_plugin_tpl}"))
 }
 
 function _self_plugin_deployTemplate {
-  # Creates file with content of the SELF_PLUGIN_TPL variable
-  echo "${SELF_PLUGIN_TPL}" > "${PLUGIN_DIR}/${SELF_PLUGIN_NAME}.sh"
+  # Creates file with content of the self_plugin_tpl variable
+  echo "${self_plugin_tpl}" > "${PLUGIN_DIR}/${SELF_PLUGIN_NAME}.sh"
   if [ $? -eq 0 ]; then
-    info "PLUGIN '${SELF_PLUGIN_NAME}' successfully created. Have fun!"
+    info "Plugin '${SELF_PLUGIN_NAME}' successfully created. Have fun!"
   else
     fail "Something went wrong. Sorry!"
   fi

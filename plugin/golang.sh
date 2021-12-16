@@ -5,9 +5,9 @@ GOLANG_OPTIONS="
 "
 
 # Internal configuration
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+golang_red='\033[0;31m'
+golang_green='\033[0;32m'
+golang_nc='\033[0m' # No Color
 
 #
 # Hook executed when the PLUGIN was loaded.
@@ -28,18 +28,18 @@ function golang_test { # Merge branch into current branch
 }
 
 function golang_lint { # Kyma 
-  LINTS=(
+  local LINTS=(
     # default golangci-lint lints
     deadcode errcheck gosimple govet ineffassign staticcheck \
     structcheck typecheck unused varcheck \
     # additional lints
     golint gofmt misspell gochecknoinits unparam scopelint gosec
   )
-  ENABLE=$(sed 's/ /,/g' <<< "${LINTS[@]}")
+  local ENABLE=$(sed 's/ /,/g' <<< "${LINTS[@]}")
 
   echo "Checks: ${LINTS[*]}"
   golangci-lint --disable-all --enable="${ENABLE}" --timeout=10m run $(pwd)/...
 
-  echo -e "${GREEN}√ run golangci-lint${NC}"
+  echo -e "${golang_green}√ run golangci-lint${golang_nc}"
 }
 

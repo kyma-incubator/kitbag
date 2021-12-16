@@ -1,0 +1,8 @@
+# IDE specific files
+.project
+.settings
+.idea/
+/.gradle/
+
+# Mac specific files
+.DS_Store

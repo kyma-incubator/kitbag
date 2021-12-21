@@ -39,6 +39,15 @@ function self_uninstall { # Removes self home dir from OS PATH env var
   info "Kitbag removed from ${self_shellRCPath}"
 }
 
+function self_home {  #Go to Kitbag home directory
+  dirname $(which kitbag)
+}
+
+function self_lint {  #Run linter for Kitbag sources
+  files=$(find $KITBAG_HOME -name *.sh | xargs echo " ")
+  docker run --rm -v "$KITBAG_HOME:$KITBAG_HOME" koalaman/shellcheck $files
+}
+
 ##################
 # Helper Functions
 ##################
@@ -71,8 +80,4 @@ function _self_check {
   if [ $? -eq 0 ]; then
     fail "Kitbag already installed in your shell. Inspect ${self_shellRCPath} or use 'kitbag self uninstall'" "true"
   fi
-}
-
-function self_home {  #Go to Kitbag home directory
-  dirname $(which kitbag)
 }

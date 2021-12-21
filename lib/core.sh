@@ -258,7 +258,7 @@ function _parsePluginOptions {
   PLUGIN_OPTIONS=("${PLUGIN_OPTIONS[@]}" "${pluginOptions[@]}")
   debug "Found options (taken from variable '${pluginOptionsVarName}'): ${pluginOptions[*]}"
 
-  _populateOptions
+  _populateOptions "$pluginOptionsVarPrefix"
 }
 
 #
@@ -267,6 +267,8 @@ function _parsePluginOptions {
 # default value will bet set.
 #
 function _populateOptions {
+  local pluginOptionsVarPrefix=$1
+
   for pluginOption in "${PLUGIN_OPTIONS[@]}"; do
     debug "Parse pluginOption string '${pluginOption}'"
 
@@ -279,6 +281,11 @@ function _populateOptions {
     for pluginOptionToken in "${pluginOptionTokens[@]}"; do
       debug "   '${pluginOptionToken}'"
     done
+
+    # ensure option name following naming convention
+    if [[ "${pluginOptionTokens[0]}" != ${pluginOptionsVarPrefix}_* ]]; then
+      fail "Plugin option '${pluginOptionTokens[0]} is invalid: option name has to start with '${pluginOptionsVarPrefix}_'"
+    fi
 
     _populateOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[1]}"
     _populateDefaultOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[2]}"

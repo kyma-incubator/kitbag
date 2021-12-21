@@ -393,7 +393,7 @@ function _showHelp {
       for pluginOption in "${PLUGIN_OPTIONS[@]}"; do
         echo "  * ${pluginOption}"
       done
-      echo "  * -help"
+      echo "  * help"
     fi
     echo ''
 

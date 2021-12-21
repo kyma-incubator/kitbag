@@ -48,7 +48,7 @@ function _self_plugin_loadtpl {
 
 # Public configuration (adjustable over CLI)
 <PLUGIN>_OPTIONS="
-OPTIONNAME|ACRONYM|defaultValue|Description
+<PLUGIN>_OPTION|opt|defaultValue|Description
 "
 
 #
@@ -70,7 +70,7 @@ function _<plugin>_cleanup {
 
 
 function <plugin>_<command> { # Description of <plugin>_<command>
-  info "You are in plugin '<plugin>': executing '<plugin>_<command>'"
+  info "You are in plugin '<plugin>': executing '<plugin>_<command>'(option <PLUGIN>_OPTION contains '$<PLUGIN>_OPTION')"
 }
 
 EOF

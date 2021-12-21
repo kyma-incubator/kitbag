@@ -167,14 +167,14 @@ already the mandatory main- and cleanup hooks and a public function to expose th
 4. If the user of the plugin should be able to provide some configuration parameters to the plugin, you can specify a
    list options which can be set as parameter over the CLI. This is done by defining a variable which includes the
    supported options as string:<br/>
-   `<PLUGINNAME>[_<SUBPLUGINNAME>]_OPTIONS="-<PLUGINNAME>[_<SUBPLUGINNAME>]_OPTIONNAME|-on|defaultValue|Some description text"`<br/>
+   `<PLUGINNAME>[_<SUBPLUGINNAME>]_OPTIONS="<PLUGINNAME>[_<SUBPLUGINNAME>]_OPTIONNAME|on|defaultValue|Some description text"`<br/>
    Multiple options are separated by a line break:
 
 ```
 MYPLUGIN_OPTIONS="
-MYPLUGIN_OPTION1|-op1|option1DefaultValue|Description of option 1
-MYPLUGIN_OPTION2|-op2|option2DefaultValue|Description of option 2
-MYPLUGIN_OPTION3|-op3|option3DefaultValue|Description of option 3
+MYPLUGIN_OPTION1|op1|option1DefaultValue|Description of option 1
+MYPLUGIN_OPTION2|op2|option2DefaultValue|Description of option 2
+MYPLUGIN_OPTION3|op3|option3DefaultValue|Description of option 3
 "
 ```
 
@@ -248,7 +248,7 @@ Finally, let's add another command which allows the user to configure the messag
 ```
 echo '
 SPEAK_OPTIONS="
--MESSAGE|-msg|HelloWorld|The message to speak
+MESSAGE|msg|HelloWorld|The message to speak
 "
 
 function speak_saySomething {
@@ -289,7 +289,7 @@ $> mkdir -p kitbag/plugin/speak
 
 $> echo '
 SPEAK_SPAIN_OPTIONS="
--SPEAK_SPAIN_MESSAGE|-ssm|Hola_World|Message to say in Spanish
+SPEAK_SPAIN_MESSAGE|ssm|Hola_World|Message to say in Spanish
 "
 
 # Main hook called after loading the plugin

@@ -2,8 +2,8 @@
 
 # Public configuration (adjustable over CLI)
 SELF_PLUGIN_OPTIONS="
--SELF_PLUGIN_NAME|-gpn||The plugin name
--SELF_PLUGIN_CMD|-gcn|firstcmd|Name of the command
+SELF_PLUGIN_NAME|gpn||The plugin name
+SELF_PLUGIN_CMD|gcn|firstcmd|Name of the command
 "
 
 self_plugin_tpl=""
@@ -48,7 +48,7 @@ function _self_plugin_loadtpl {
 
 # Public configuration (adjustable over CLI)
 <PLUGIN>_OPTIONS="
--OPTIONNAME|-ACRONYM|defaultValue|Description
+OPTIONNAME|ACRONYM|defaultValue|Description
 "
 
 #

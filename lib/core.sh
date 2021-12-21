@@ -56,14 +56,14 @@ function parseArgs {
     if [[ "$1" == "-"* ]]; then
       # CLI argument is an OPTION
       debug "Checking if CLI parameter '$1' is an supported option"
-      if [[ "$1" == "--help" ]]; then
+      if [[ "$1" == "-help" ]]; then
         SHOW_HELP=1
         shift 1
       fi
       for pluginOption in $pluginOptions[@]; do
         debug "CLI parameter '$1' is an option"
         #internal delimiter for CLI_OPTIONS is set to § to avoid parsing errors if a more common symbol was used instead
-        CLI_OPTIONS+=( "$1"§"$2" )
+        CLI_OPTIONS+=( "$(echo $1 | tr -d '-')§${2}" )
         shift 2
       done
     else
@@ -120,7 +120,7 @@ function _dispatchPlugin {
   local pluginPath=${PLUGIN_DIR}/${dispatchPlugin}.sh
 
   debug "Dispatching plugin '${dispatchPlugin}'"
-  
+
   if [ -f "$pluginPath" ]; then
     loadPlugin "$dispatchPlugin"
     # Remember the loaded plugin for later dispatch calls
@@ -139,7 +139,7 @@ function _dispatchPlugin {
 function _dispatchSubPlugin {
   local dispatchPlugin=$1
   local pluginPath="${PLUGIN_DIR}/$(joinArray '/' ${SUB_PLUGINS[@]})/${dispatchPlugin}.sh"
-  
+
   debug "Dispatching sub-plugin '$(joinArray '_' ${SUB_PLUGINS[@]})_${dispatchPlugin}'"
 
   if [ -f "$pluginPath" ]; then
@@ -210,8 +210,8 @@ function loadPlugin {
   LOADED_PLUGINS+=( $plugin )
 
   debug "Resolve supported options of plugin '${plugin}'"
-  local pluginOptionsVarName="$(echo $plugin | tr a-z A-Z)_OPTIONS"  #parse the variable-name containing the plugin options
-  _parsePluginOptions $pluginOptionsVarName
+  local pluginOptionsVarPrefix="$(echo $plugin | tr a-z A-Z)"  #parse the variable-prefix
+  _parsePluginOptions $pluginOptionsVarPrefix
 
   debug "Call main function of plugin: _${plugin}_main"
   if ! _${plugin}_main; then
@@ -231,8 +231,8 @@ function _loadSubPlugin {
   source "${PLUGIN_DIR}/$(joinArray '/' ${SUB_PLUGINS[@]})/${plugin}.sh"
 
   debug "Resolve supported options of sub-plugin '${plugin}'"
-  local pluginOptionsVarName="$(echo $(joinArray '_' ${SUB_PLUGINS[@]})_$plugin | tr a-z A-Z)_OPTIONS" #parse the variable-name
-  _parsePluginOptions $pluginOptionsVarName
+  local pluginOptionsVarPrefix="$(echo $(joinArray '_' ${SUB_PLUGINS[@]})_$plugin | tr a-z A-Z)" #parse the variable prefix
+  _parsePluginOptions $pluginOptionsVarPrefix
 
   local fctName="_$(joinArray '_', ${SUB_PLUGINS[@]})_${plugin}_main"
   debug "Call main function of sub-plugin: ${fctName}"
@@ -246,7 +246,8 @@ function _loadSubPlugin {
 # @param The plugin option variable name (follows the pattern <PLUGIN>_OPTIONS).
 #
 function _parsePluginOptions {
-  local pluginOptionsVarName=$1
+  local pluginOptionsVarPrefix=$1
+  local pluginOptionsVarName="${pluginOptionsVarPrefix}_OPTIONS"
 
   #read the PLUGIN option
   IFS=$'\n'
@@ -279,11 +280,8 @@ function _populateOptions {
       debug "   '${pluginOptionToken}'"
     done
 
-    # remove leading '-' from the plugin option names
-    local pluginOptionName=${pluginOptionTokens[0]:1}
-  
-    _populateOption "$pluginOptionName" "${pluginOptionTokens[0]}" "${pluginOptionTokens[1]}"
-    _populateDefaultOption "$pluginOptionName" "${pluginOptionTokens[2]}"
+    _populateOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[1]}"
+    _populateDefaultOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[2]}"
   done
 }
 
@@ -294,9 +292,8 @@ function _populateOptions {
 # @param Short name (acronym) of the option on CLI (e.g. '-on')
 #
 function _populateOption {
-  local pluginOptionName=$1 
-  local cliOptionName=$2 
-  local cliOptionAcronym=$3
+  local cliOptionName=$1
+  local cliOptionAcronym=$2
 
   # Populate provided user options 
   for cliOption in "${CLI_OPTIONS[@]}"; do
@@ -313,8 +310,8 @@ function _populateOption {
 
     # Check if the user option is supported by the plugin (compare it with full key name and acronym key name)
     if [[ "${cliOptionTokens[0]}" == "${cliOptionName}" || "${cliOptionTokens[0]}" == "${cliOptionAcronym}" ]]; then
-      export "${pluginOptionName}"="${cliOptionTokens[1]}"
-      debug "Populate provided CLI option '${cliOption}': ${pluginOptionName}=${cliOptionTokens[1]}"
+      export "${cliOptionName}"="${cliOptionTokens[1]}"
+      debug "Populate provided CLI option '${cliOption}': ${cliOptionName}=${cliOptionTokens[1]}"
     fi
   done
 }
@@ -378,7 +375,7 @@ function _showHelp {
       for pluginOption in "${PLUGIN_OPTIONS[@]}"; do
         echo "  * ${pluginOption}"
       done
-      echo "  * --help"
+      echo "  * -help"
     fi
     echo ''
 

@@ -2,7 +2,7 @@
 
 # Public configuration (adjustable over CLI)
 K3S_OPTIONS="
--K3S_K8S_NAME|-kcn|kyma
+K3S_K8S_NAME|kcn|kyma
 "
 
 #

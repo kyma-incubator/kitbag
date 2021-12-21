@@ -18,6 +18,8 @@ LOADED_PLUGINS=()  # List of all loaded plugins
 PLUGIN_COMMANDS=() #Supported commands of the plugin
 PLUGIN_OPTIONS=()  #Supported options of the plugin
 ERROR=()           #Fail method error array
+
+CURRENT_PLUGIN_DIR="" #Refers to latest loaded plugin directory
 SHOW_HELP=0
 #################################
 
@@ -202,8 +204,13 @@ function loadPlugin {
   IFS=$'_'
   local pluginPathTokens=( ${plugin} )
   IFS=$DEFAULT_IFS
-  local pluginPath="${PLUGIN_DIR}/$(joinArray '/' ${pluginPathTokens[@]}).sh"
 
+  # update current plugin path
+  CURRENT_PLUGIN_DIR="$PLUGIN_DIR"
+  debug "Set CURRENT_PLUGIN_DIR=$CURRENT_PLUGIN_DIR"
+
+  # load the plugin
+  local pluginPath="${PLUGIN_DIR}/$(joinArray '/' ${pluginPathTokens[@]}).sh"
   debug "Loading plugin '${pluginPath}'"
   fileExists $pluginPath
   source $pluginPath
@@ -227,8 +234,12 @@ function loadPlugin {
 function _loadSubPlugin {
   local plugin=$1
 
-  debug "Loading sub-plugin '${PLUGIN_DIR}/$(joinArray '/' ${SUB_PLUGINS[@]})/${plugin}.sh'"
-  source "${PLUGIN_DIR}/$(joinArray '/' ${SUB_PLUGINS[@]})/${plugin}.sh"
+  # update current plugin path
+  CURRENT_PLUGIN_DIR="${PLUGIN_DIR}/$(joinArray '/' ${SUB_PLUGINS[@]})"
+  debug "Set CURRENT_PLUGIN_DIR=$CURRENT_PLUGIN_DIR"
+
+  debug "Loading sub-plugin '${CURRENT_PLUGIN_DIR}/${plugin}.sh'"
+  source "${CURRENT_PLUGIN_DIR}/${plugin}.sh"
 
   debug "Resolve supported options of sub-plugin '${plugin}'"
   local pluginOptionsVarPrefix="$(echo $(joinArray '_' ${SUB_PLUGINS[@]})_$plugin | tr a-z A-Z)" #parse the variable prefix
@@ -254,11 +265,18 @@ function _parsePluginOptions {
   local pluginOptions=( ${!pluginOptionsVarName} )
   IFS=$DEFAULT_IFS
 
+  # ensure option name following naming convention
+  for pluginOption in "${pluginOptions[@]}"; do
+    if [[ "$pluginOption" != ${pluginOptionsVarPrefix}_* ]]; then
+      fail "Plugin option '$(echo $pluginOption | cut -d\| -f1)' is invalid: option name has to start with '${pluginOptionsVarPrefix}_'"
+    fi
+  done
+
   #merge old and new PLUGIN options
   PLUGIN_OPTIONS=("${PLUGIN_OPTIONS[@]}" "${pluginOptions[@]}")
   debug "Found options (taken from variable '${pluginOptionsVarName}'): ${pluginOptions[*]}"
 
-  _populateOptions "$pluginOptionsVarPrefix"
+  _populateOptions
 }
 
 #
@@ -267,8 +285,6 @@ function _parsePluginOptions {
 # default value will bet set.
 #
 function _populateOptions {
-  local pluginOptionsVarPrefix=$1
-
   for pluginOption in "${PLUGIN_OPTIONS[@]}"; do
     debug "Parse pluginOption string '${pluginOption}'"
 
@@ -281,11 +297,6 @@ function _populateOptions {
     for pluginOptionToken in "${pluginOptionTokens[@]}"; do
       debug "   '${pluginOptionToken}'"
     done
-
-    # ensure option name following naming convention
-    if [[ "${pluginOptionTokens[0]}" != ${pluginOptionsVarPrefix}_* ]]; then
-      fail "Plugin option '${pluginOptionTokens[0]} is invalid: option name has to start with '${pluginOptionsVarPrefix}_'"
-    fi
 
     _populateOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[1]}"
     _populateDefaultOption "${pluginOptionTokens[0]}" "${pluginOptionTokens[2]}"

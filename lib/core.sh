@@ -412,7 +412,7 @@ function _cleanup {
   while [ ${#SUB_PLUGINS[@]} -gt 0 ]; do
     debug "Call cleanup function '_$(joinArray '_' ${SUB_PLUGINS[@]})_cleanup'"
     if ! _$(joinArray '_' ${SUB_PLUGINS[@]})_cleanup 2>/dev/null; then
-        fail "Corrupted or invalid Sub-PLUGIN! Could not find cleanup method '_${PLUGIN}_${subPlugin}_cleanup'"
+        fail "Corrupted or invalid sub-plugin! Could not find cleanup method '_${PLUGIN}_${subPlugin}_cleanup'"
     fi
     unset 'SUB_PLUGINS[${#SUB_PLUGINS[@]}-1]'
   done

@@ -15,8 +15,8 @@ CLI_OPTIONS=()   #Options the user has provided
 # DISPATCHING (managed by dispatch function)
 SUB_PLUGINS=()     #List of called sub-plugins (used if dispatch-function is called more than one time)
 LOADED_PLUGINS=()  # List of all loaded plugins
-PLUGIN_COMMANDS=() #Supported commands of the choosen PLUGIN
-PLUGIN_OPTIONS=()  #Supported options of the choosen PLUGIN
+PLUGIN_COMMANDS=() #Supported commands of the plugin
+PLUGIN_OPTIONS=()  #Supported options of the plugin
 ERROR=()           #Fail method error array
 SHOW_HELP=0
 #################################
@@ -42,7 +42,7 @@ function loadConfigFile {
 #
 # Parse command line arguments. The function groups them into three different kinds and stores them in global variables.
 #
-# $PLUGIN: contains the PLUGIN the user has entered.
+# $PLUGIN: contains the plugin the user has entered.
 # $CLI_COMMANDS: array containing the requested commands.
 # $CLI_OPTIONS: array containing the provided user options.
 #
@@ -68,8 +68,8 @@ function parseArgs {
       done
     else
       # CLI argument is the PLUGIN or a COMMAND
-      if [ $loopCount -eq 0 ]; then #first non-option is always treated as the requested PLUGIN
-        debug "CLI parameter '$1' is the PLUGIN"
+      if [ $loopCount -eq 0 ]; then #first non-option is always treated as the requested plugin
+        debug "CLI parameter '$1' is the plugin"
         PLUGIN=$1
       else
         debug "CLI parameter '$1' is a command"
@@ -83,15 +83,15 @@ function parseArgs {
 }
 
 #
-# Dispatch the requested PLUGIN. The dispatch function recognizes whether a main-PLUGIN has to be dispatched or
+# Dispatch the requested plugin. The dispatch function recognizes whether a main-plugin has to be dispatched or
 # a sub-plugin of it.
-# The dispatching will load the requested (sub-)PLUGIN and call the (sub-)PLUGIN specific hooks.
+# The dispatching will load the requested (sub-)plugin and call the (sub-)plugin specific hooks.
 # An help message will be shown if the dispatching was not possible.
 #
-# @param The PLUGIN to dispatch.
+# @param The plugin to dispatch.
 #
 function dispatch {
-  debug "Dispatch main PLUGIN '$PLUGIN'"
+  debug "Dispatch main plugin '$PLUGIN'"
   _dispatchPlugin $PLUGIN
   for callee in ${CLI_COMMANDS[@]}; do
     debug "Try to call command '$callee'"
@@ -119,21 +119,21 @@ function _dispatchPlugin {
   local dispatchPlugin=$1
   local pluginPath=${PLUGIN_DIR}/${dispatchPlugin}.sh
 
-  debug "Dispatching PLUGIN '${dispatchPlugin}'"
+  debug "Dispatching plugin '${dispatchPlugin}'"
   
   if [ -f "$pluginPath" ]; then
     loadPlugin "$dispatchPlugin"
-    # Remember the loaded PLUGIN for later dispatch calls
+    # Remember the loaded plugin for later dispatch calls
     SUB_PLUGINS+=( $dispatchPlugin )
   else
-    debug "PLUGIN '${dispatchPlugin}' not found on filesystem ($pluginPath), use 'kitbag' as fallback PLUGIN"
+    debug "Plugin '${dispatchPlugin}' not found on filesystem ($pluginPath), use 'kitbag' as fallback plugin"
     PLUGIN='kitbag'
     _showHelp
   fi
 
-  debug "Resolve supported commands of PLUGIN '${dispatchPlugin}'"
+  debug "Resolve supported commands of plugin '${dispatchPlugin}'"
   PLUGIN_COMMANDS=( $(grep -o "function *${dispatchPlugin}_.*[^{ ]" $pluginPath | awk -F "{" '{print $1}' | awk -F "_" '{print $2}') )
-  debug "Found commands in PLUGIN: ${PLUGIN_COMMANDS[*]}"
+  debug "Found commands in plugin: ${PLUGIN_COMMANDS[*]}"
 }
 
 function _dispatchSubPlugin {
@@ -147,7 +147,7 @@ function _dispatchSubPlugin {
     # Remember the loaded PLUGIN for later dispatch calls
     SUB_PLUGINS+=( $dispatchPlugin )
   else
-    debug "PLUGIN '${dispatchPlugin}' not found on filesystem ($pluginPath), use '${PLUGIN}' as fallback PLUGIN"
+    debug "Plugin '${dispatchPlugin}' not found on filesystem ($pluginPath), use '${PLUGIN}' as fallback plugin"
     _showHelp
   fi
 
@@ -157,8 +157,8 @@ function _dispatchSubPlugin {
 }
 
 #
-# Call a command of the current PLUGIN.
-# @param The PLUGIN command.
+# Call a command of the current plugin.
+# @param The command.
 #
 function _callPluginCommand {
   local command=$1
@@ -179,26 +179,26 @@ function _callPluginCommand {
           _showHelp
         fi
       else
-        fail "Corrupted PLUGIN file or invalid command call! Failing when executing function '${PLUGIN}_${command}'"
+        fail "Corrupted plugin file or invalid command call! Failing when executing function '${PLUGIN}_${command}'"
       fi
       break
     fi
   done
 
   if [ $validCmd -eq 0 ]; then
-    debug "Could not find command '$command' in PLUGIN '$PLUGIN' (available commands are: ${PLUGIN_COMMANDS[*]})"
+    debug "Could not find command '$command' in plugin '$PLUGIN' (available commands are: ${PLUGIN_COMMANDS[*]})"
     _showHelp
   fi
 }
 
 #
-# Load an PLUGIN file and populate the public options of the plugin.
-# @param The PLUGIN name (sub-plugins are supported by defining them with their full name e.g. <parentPlugin>_<subPlugin>).
+# Load an plugin file and populate the public options of the plugin.
+# @param The plugin name (sub-plugins are supported by defining them with their full name e.g. <parentPlugin>_<subPlugin>).
 #
 function loadPlugin {
   local plugin=$1
 
-  # generate the PLUGIN path
+  # generate the plugin path
   IFS=$'_'
   local pluginPathTokens=( ${plugin} )
   IFS=$DEFAULT_IFS
@@ -209,13 +209,13 @@ function loadPlugin {
   source $pluginPath
   LOADED_PLUGINS+=( $plugin )
 
-  debug "Resolve supported options of PLUGIN '${plugin}'"
-  local pluginOptionsVarName="$(echo $plugin | tr a-z A-Z)_OPTIONS"  #parse the variable-name containing the PLUGIN options
+  debug "Resolve supported options of plugin '${plugin}'"
+  local pluginOptionsVarName="$(echo $plugin | tr a-z A-Z)_OPTIONS"  #parse the variable-name containing the plugin options
   _parsePluginOptions $pluginOptionsVarName
 
-  debug "Call main function of PLUGIN: _${plugin}_main"
+  debug "Call main function of plugin: _${plugin}_main"
   if ! _${plugin}_main; then
-    fail "Corrupted PLUGIN file or defective main method! Failing when executing '_${plugin}_main'"
+    fail "Corrupted plugin file or defective main method! Failing when executing '_${plugin}_main'"
   fi
 }
 
@@ -242,8 +242,8 @@ function _loadSubPlugin {
 }
 
 #
-# Parse the PLUGIN options and populate them as variables.
-# @param The PLUGIN option variable name (follows the pattern <PLUGIN>_OPTIONS).
+# Parse the plugin options and populate them as variables.
+# @param The plugin option variable name (follows the pattern <PLUGIN>_OPTIONS).
 #
 function _parsePluginOptions {
   local pluginOptionsVarName=$1
@@ -261,7 +261,7 @@ function _parsePluginOptions {
 }
 
 #
-# Populate the public options of the PLUGIN.
+# Populate the public options of the plugin.
 # If the user has provided the option over the CLI it will set the value given by the user, otherwise the configured
 # default value will bet set.
 #
@@ -274,7 +274,7 @@ function _populateOptions {
     local pluginOptionTokens=( $pluginOption )
     IFS=$DEFAULT_IFS
 
-    debug "Extracted these tokens from PLUGIN option '${pluginOption}':"
+    debug "Extracted these tokens from plugin option '${pluginOption}':"
     for pluginOptionToken in "${pluginOptionTokens[@]}"; do
       debug "   '${pluginOptionToken}'"
     done
@@ -288,8 +288,8 @@ function _populateOptions {
 }
 
 #
-# Populate one PLUGIN option.
-# @param Name of the option how it will be vislbe for the PLUGIN (e.g. 'OPTION_NAME')
+# Populate one plugin option.
+# @param Name of the option how it will be vislbe for the plugin (e.g. 'OPTION_NAME')
 # @param Full name of the option on CLI (e.g. '-OPTION_NAME')
 # @param Short name (acronym) of the option on CLI (e.g. '-on')
 #
@@ -311,7 +311,7 @@ function _populateOption {
     done
 
 
-    # Check if the user option is supported by the PLUGIN (compare it with full key name and acronym key name)
+    # Check if the user option is supported by the plugin (compare it with full key name and acronym key name)
     if [[ "${cliOptionTokens[0]}" == "${cliOptionName}" || "${cliOptionTokens[0]}" == "${cliOptionAcronym}" ]]; then
       export "${pluginOptionName}"="${cliOptionTokens[1]}"
       debug "Populate provided CLI option '${cliOption}': ${pluginOptionName}=${cliOptionTokens[1]}"
@@ -320,8 +320,8 @@ function _populateOption {
 }
 
 #
-# Populate one PLUGIN option using its default value. Default value will only be set if the options wasn't set yet.
-# @param Name of the option how it will be vislbe for the PLUGIN (without leading '-', e.g. 'OPTION_NAME')
+# Populate one plugin option using its default value. Default value will only be set if the options wasn't set yet.
+# @param Name of the option how it will be vislbe for the plugin (without leading '-', e.g. 'OPTION_NAME')
 # @param The default value.
 #
 function _populateDefaultOption {
@@ -337,7 +337,7 @@ function _populateDefaultOption {
 }
 
 #
-# Show the help message for the current PLUGIN.
+# Show the help message for the current plugin.
 #
 function _showHelp {
   _showErrors
@@ -402,7 +402,7 @@ function _showErrors {
 }
 
 #
-# Trigger of the PLUGIN cleanup hooks.
+# Trigger of the plugin cleanup hooks.
 #
 function _cleanup {
   # Cleanup all loaded plugins (does not include sub-plugins)

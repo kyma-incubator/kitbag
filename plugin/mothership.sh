@@ -26,26 +26,22 @@ function _mothership_main {
   cmdExists jq
   cmdExists tr
 
+  varNotEmpty MOTHERSHIP_KUBECONFIG true
   fileExists ${MOTHERSHIP_KUBECONFIG} true
-
-  _mothership_validateArgs \
-	  MOTHERSHIP_KCP_OPTION \
+  
+  MOTHERSHIP_KCP_OPTION=$(_mothership_validate_exclusive_args \
 	  ${!MOTHERSHIP_CORRELATION_ID@} \
 	  ${!MOTHERSHIP_RUNTIME_ID@} \
 	  ${!MOTHERSHIP_SCHEDULING_ID@} \
-	  ${!MOTHERSHIP_SHOOT@}
+	  ${!MOTHERSHIP_SHOOT@})
 
   varNotEmpty ISTIOCTL_PATH true
   varNotEmpty KCPCONFIG true
 
   MOTHERSHIP_LOCAL_JQ_FILTER=$(_mothership_parse_excluded)
   
-  # create a temp kubeconfig file
-  MOTHERSHIP_TEMP_KUBECONFIG=$(mktemp /tmp/kubeconfig-XXXXX)
+  # create a temp mothership reconciler configuration file
   MOTHERSHIP_TEMP_MSRECONFIG=$(mktemp /tmp/msreconfig-XXXXX)
-
-  MOTHERSHIP_LOCAL_TEMP_STD_ERR=$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'a-f0-9' | head -c 32)
-  MOTHERSHIP_LOCAL_FD=3
 }
 
 function _mothership_parse_excluded {
@@ -58,24 +54,23 @@ function _mothership_parse_excluded {
 }
 
 function _mothership_match_option {
-  local var=$1 
-  local arg=$2
+  local arg=$1
   
   case $arg in
     ${!MOTHERSHIP_CORRELATION_ID@})
-      eval "${var}=--correlation-id=${MOTHERSHIP_CORRELATION_ID}"
+      echo "--correlation-id=${MOTHERSHIP_CORRELATION_ID}"
       ;;
 
     ${!MOTHERSHIP_RUNTIME_ID@})
-      eval "${var}=--runtime-id=${MOTHERSHIP_RUNTIME_ID}"
+      echo "--runtime-id=${MOTHERSHIP_RUNTIME_ID}"
       ;;
 
     ${!MOTHERSHIP_SCHEDULING_ID@})
-      eval "${var}=--scheduling-id=${MOTHERSHIP_SCHEDULING_ID}"
+      echo "--scheduling-id=${MOTHERSHIP_SCHEDULING_ID}"
       ;;
 
     ${!MOTHERSHIP_SHOOT@})
-      eval "${var}=--shoot=${MOTHERSHIP_SHOOT}"
+      echo "--shoot=${MOTHERSHIP_SHOOT}"
       ;;
 
     *)
@@ -100,13 +95,13 @@ function _mothership_build_exclude_filter {
   echo ${filter}
 }
 
-# validate exclusive arguments (change to parse)
-function _mothership_validateArgs {
+# validate exclusive arguments
+function _mothership_validate_exclusive_args {
   local args=( "$@" )
   local is_found=false
   local result
 
-  for arg in "${args[@]:1}"; do
+  for arg in "${args[@]}"; do
     # continue if variable with a given name is not set
     if [ -z "${!arg}" ]; then 
       debug "empty argument skipped: ${arg}"
@@ -130,7 +125,8 @@ function _mothership_validateArgs {
   fi
   
   # assign result value to the variable
-  _mothership_match_option ${args[0]} ${result}
+  local var=${args[1]} 
+  echo $(_mothership_match_option ${result})
 }
 
 #
@@ -140,43 +136,40 @@ function _mothership_cleanup {
   # set trap to prevent cleanup interrupts
   trap "" SIGINT
 
-  # close file descriptor
-  eval "exec $MOTHERSHIP_LOCAL_FD<&-"
-
-  rm -f "$MOTHERSHIP_TEMP_KUBECONFIG" "$MOTHERSHIP_TEMP_MSRECONFIG" "$MOTHERSHIP_LOCAL_TEMP_STD_ERR"
+  rm -f "$MOTHERSHIP_TEMP_MSRECONFIG"
 
   # remove cleanup interrupt trap
   trap - SIGINT
-}
-
-function _mothership_fetch_cluster_state {
-  local command=$1
-
-  mkfifo "$MOTHERSHIP_LOCAL_TEMP_STD_ERR"
-
-  # redirect error output, async call is blocked with error pipe
-  $command > "$MOTHERSHIP_TEMP_MSRECONFIG" 2>"$MOTHERSHIP_LOCAL_TEMP_STD_ERR" &
-  local pid=$!
-
-  # unblock command call
-  eval "exec $MOTHERSHIP_LOCAL_FD<$MOTHERSHIP_LOCAL_TEMP_STD_ERR"
-  wait $pid
-
-  local exitcode=$?
-
-  # fail with error message if error code is not 0
-  [ "$exitcode" -gt 0 ] && fail "$(cat <&3)" true
 }
 
 #
 # Creates a new cluster and start mothership reconciler.
 #
 function mothership_local {
-  _mothership_fetch_cluster_state "kcp rc s ${MOTHERSHIP_KCP_OPTION} -o json"
+  # fetch cluster configuration from the mothership
+  kcp rc s ${MOTHERSHIP_KCP_OPTION} -o json > "${MOTHERSHIP_TEMP_MSRECONFIG}"
 
+  # fail with error message if error code is not 0
+  if [ "$?" -ne 0 ]; then
+    fail "cluster state fetching failed" true
+  fi
+
+  # transform cluster configuration - filter components
+  jq "${MOTHERSHIP_LOCAL_JQ_FILTER}" "${MOTHERSHIP_TEMP_MSRECONFIG}" \
+  > "${MOTHERSHIP_TEMP_MSRECONFIG}"
+  
+  # fail with error message if error code is not 0
+  if [ "$?" -ne 0 ]; then
+    fail "component filtering failed" true
+  fi
+  
+  # run mothership local command
   cat ${MOTHERSHIP_TEMP_MSRECONFIG} \
-  | jq "${MOTHERSHIP_LOCAL_JQ_FILTER}" \
-  | tee /tmp/test.cluster.config.json \
   | msrec local --kubeconfig=${MOTHERSHIP_KUBECONFIG} -
+
+  # fail with error message if error code is not 0
+  if [ "$?" -ne 0 ]; then
+    fail "local reconciliation failed" true
+  fi
 }
 

@@ -18,8 +18,6 @@ MOTHERSHIP_K8S_NAME|kcn|msrec
 # Hook executed when the PLUGIN was loaded.
 #
 function _mothership_main {
-  cmdExists docker
-  cmdExists k3d
   cmdExists istioctl
   cmdExists msrec
   cmdExists kcp

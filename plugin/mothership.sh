@@ -1,8 +1,5 @@
 #!/bin/bash
 
-
-source $KITBAG_HOME/plugin/k3s.sh
-
 # Public configuration (adjustable over CLI)
 MOTHERSHIP_OPTIONS="
 MOTHERSHIP_CORRELATION_ID|corelation_id|
@@ -11,7 +8,6 @@ MOTHERSHIP_SCHEDULING_ID|scheduling_id|
 MOTHERSHIP_SHOOT|shoot|
 MOTHERSHIP_EXCLUDE|exclude|
 MOTHERSHIP_KUBECONFIG|kubeconfig|
-MOTHERSHIP_K8S_NAME|kcn|msrec
 "
 
 #
@@ -19,7 +15,7 @@ MOTHERSHIP_K8S_NAME|kcn|msrec
 #
 function _mothership_main {
   cmdExists istioctl
-  cmdExists msrec
+  cmdExists mothership
   cmdExists kcp
   cmdExists jq
   cmdExists tr
@@ -163,7 +159,7 @@ function mothership_local {
   
   # run mothership local command
   cat ${MOTHERSHIP_TEMP_MSRECONFIG} \
-  | msrec local --kubeconfig=${MOTHERSHIP_KUBECONFIG} -
+  | mothership local --kubeconfig=${MOTHERSHIP_KUBECONFIG} -
 
   # fail with error message if error code is not 0
   if [ "$?" -ne 0 ]; then
